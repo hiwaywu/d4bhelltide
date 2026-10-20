@@ -42,24 +42,33 @@ class Combat:
 
     def act(self, snap, now: float) -> str | None:
         target = snap.nearest(self.hostile_team, self.aggro_radius)
-        if target is None or target.dist is None:
-            return None
-        last_action: str | None = None
+        actions: list[str] = []
+
+        # buffs fire on their own schedule, at most one per tick
         for skill in self.skills:
-            if skill.kind == "buff":
-                if now >= self._ready.get(skill.key, 0.0):
-                    self.inp.tap_name(skill.key)
-                    self._ready[skill.key] = now + max(skill.every or skill.cooldown, 0.1)
-                    last_action = f"buff({skill.key})"
+            if skill.kind != "buff":
                 continue
-            if target.dist > skill.range:
-                continue
-            if now < self._ready.get(skill.key, 0.0):
-                continue
-            self.inp.tap_name(skill.key)
-            self._ready[skill.key] = now + max(skill.cooldown, 0.05)
-            last_action = f"attack({skill.key})@{target.dist:.1f}m"
-        return last_action
+            if now >= self._ready.get(skill.key, 0.0):
+                self.inp.tap_name(skill.key)
+                self._ready[skill.key] = now + max(skill.every or skill.cooldown, 0.1)
+                actions.append(f"buff({skill.key})")
+                break
+
+        # fire exactly one attack skill per tick: the first ready one in range
+        if target is not None and target.dist is not None:
+            for skill in self.skills:
+                if skill.kind != "attack":
+                    continue
+                if target.dist > skill.range:
+                    continue
+                if now < self._ready.get(skill.key, 0.0):
+                    continue
+                self.inp.tap_name(skill.key)
+                self._ready[skill.key] = now + max(skill.cooldown, 0.05)
+                actions.append(f"attack({skill.key})@{target.dist:.1f}m")
+                break
+
+        return " ".join(actions) if actions else None
 
 
 def time_now() -> float:

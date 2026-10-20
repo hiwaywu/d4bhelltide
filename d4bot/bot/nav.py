@@ -57,6 +57,8 @@ class Navigator:
         self._last_move_t = 0.0
         self._stuck_ticks = 0
         self._vks = {role: vk_for(key) for role, key in self.keys.items()}
+        # basis vectors are keyed by key label (W/A/S/D), not role name
+        self._role_keys = {role: str(key).upper() for role, key in self.keys.items()}
 
     # -- geometry -------------------------------------------------------
     def horizontal(self, pos: tuple[float, ...]) -> tuple[float, float] | None:
@@ -72,7 +74,8 @@ class Navigator:
         for name, roles in COMBOS:
             vx = vy = 0.0
             for role in roles:
-                b = self.basis.get(role.upper()) or self.basis.get(role)
+                key_label = self._role_keys.get(role, role.upper())
+                b = self.basis.get(key_label) or self.basis.get(role.upper()) or self.basis.get(role)
                 if b:
                     vx += b[0]
                     vy += b[1]
