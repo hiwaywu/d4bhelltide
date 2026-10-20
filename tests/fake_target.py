@@ -37,14 +37,48 @@ def child_main(json_path: str) -> None:
     root = ctypes.create_string_buffer(0x2000)
     obj = ctypes.create_string_buffer(0x2000)
     leaf = ctypes.create_string_buffer(0x2000)
+    ent1 = ctypes.create_string_buffer(0x40)
+    ent2 = ctypes.create_string_buffer(0x40)
+    array = ctypes.create_string_buffer(0x100)
 
-    ctypes.memmove(ctypes.addressof(leaf) + 8, ctypes.byref(ctypes.c_int32(424242)), 4)
-    ctypes.memmove(ctypes.addressof(leaf) + 16, ctypes.byref(ctypes.c_float(61.5)), 4)
+    def f32(buf, off, value):
+        ctypes.memmove(ctypes.addressof(buf) + off, ctypes.byref(ctypes.c_float(value)), 4)
 
-    ptr = ctypes.c_uint64(ctypes.addressof(leaf))
-    ctypes.memmove(ctypes.addressof(obj) + 0x10, ctypes.byref(ptr), 8)
-    ptr2 = ctypes.c_uint64(ctypes.addressof(obj))
-    ctypes.memmove(ctypes.addressof(root) + 0x0, ctypes.byref(ptr2), 8)
+    def i32(buf, off, value):
+        ctypes.memmove(ctypes.addressof(buf) + off, ctypes.byref(ctypes.c_int32(value)), 4)
+
+    def u64(buf, off, value):
+        ctypes.memmove(ctypes.addressof(buf) + off, ctypes.byref(ctypes.c_uint64(value)), 8)
+
+    # leaf: cinders @0x08, hp @0x10, player pos @0x18
+    i32(leaf, 0x08, 424242)
+    f32(leaf, 0x10, 61.5)
+    f32(leaf, 0x18, 0.0)
+    f32(leaf, 0x1C, 0.0)
+    f32(leaf, 0x20, 0.0)
+
+    # entities: pos @0x00 (f32x3), hp @0x10, team @0x14
+    f32(ent1, 0x00, 10.0)
+    f32(ent1, 0x04, 0.0)
+    f32(ent1, 0x08, 0.0)
+    f32(ent1, 0x10, 50.0)
+    i32(ent1, 0x14, 1)
+    f32(ent2, 0x00, 5.0)
+    f32(ent2, 0x04, 0.0)
+    f32(ent2, 0x08, 0.0)
+    f32(ent2, 0x10, 0.0)   # dead
+    i32(ent2, 0x14, 1)
+
+    u64(array, 0x00, ctypes.addressof(ent1))
+    u64(array, 0x08, ctypes.addressof(ent2))
+
+    # obj: pointer to leaf @0x10; entity manager: count @0x20, array ptr @0x28
+    u64(obj, 0x10, ctypes.addressof(leaf))
+    i32(obj, 0x20, 2)
+    u64(obj, 0x28, ctypes.addressof(array))
+
+    # root: pointer to obj @0x00
+    u64(root, 0x00, ctypes.addressof(obj))
 
     info = {
         "pid": os.getpid(),
@@ -56,6 +90,10 @@ def child_main(json_path: str) -> None:
         "cinders": 424242,
         "hp_addr": ctypes.addressof(leaf) + 16,
         "hp": 61.5,
+        "pos_addr": ctypes.addressof(leaf) + 0x18,
+        "ent1": ctypes.addressof(ent1),
+        "ent2": ctypes.addressof(ent2),
+        "entities": 2,
     }
     with open(json_path, "w", encoding="utf-8") as fh:
         json.dump(info, fh)

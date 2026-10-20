@@ -11,6 +11,7 @@ we grow one level: find words pointing at that word's location, and so on.
 """
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass
 
 import numpy as np
@@ -143,12 +144,21 @@ class ChainFinder:
                         depth=depth,
                     )
                     if validate:
-                        try:
-                            if resolve_chain(
-                                self.proc, sbase, chain.static_off, chain.offsets
-                            ) != target:
-                                continue
-                        except Exception:
+                        ok = False
+                        for attempt in range(2):
+                            try:
+                                ok = (
+                                    resolve_chain(
+                                        self.proc, sbase, chain.static_off, chain.offsets
+                                    )
+                                    == target
+                                )
+                                break
+                            except Exception:
+                                # transient read hiccup: retry once before dropping
+                                if attempt == 0:
+                                    time.sleep(0.02)
+                        if not ok:
                             continue
                     results.append(chain)
                 else:

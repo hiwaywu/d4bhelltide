@@ -32,7 +32,7 @@ pip install -r requirements.txt
 python -m unittest discover -s tests -t . -v
 ```
 
-Health check passes if the final line is `OK` (31 tests). This runs against a
+Health check passes if the final line is `OK` (42 tests). This runs against a
 synthetic target process — **the game is not needed** for this step. If it
 fails, stop and fix the environment before touching the game.
 

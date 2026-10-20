@@ -22,10 +22,11 @@ numpy; no DLL injection, no drivers, no memory writes.
 | **Actual game offsets (cinders/HP/pos/entities)** | ❌ **requires the game — Phase 2** |
 
 Everything above is verified against a synthetic target process
-(`tests/fake_target.py`) and synthetic snapshots: **31 tests** cover the memory
-layer, scanner, chain finder, reader, CLI wiring against a foreign process, and
-the bot loop (chest open, retreat, death stop). You can run the whole suite at
-home without Diablo 4 to confirm your install is healthy.
+(`tests/fake_target.py`) and synthetic snapshots: **42 tests** cover the memory
+layer, scanner, chain finder, reader (including entity-list decoding), CLI
+wiring against a foreign process, the bot loop (chest open, retreat, death
+stop), and the input safety gate. You can run the whole suite at home without
+Diablo 4 to confirm your install is healthy.
 
 ## Requirements
 
