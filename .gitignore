@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+logs/
+.tmp/
+*.tmp
+*.bundle
+config/offsets.local.json
+.DS_Store
+_dbg_*.txt
+_debug_spawn.py

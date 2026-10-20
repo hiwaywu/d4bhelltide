@@ -1,0 +1,20 @@
+{
+  "patch": "",
+  "module": "Diablo IV.exe",
+  "required_fields": [],
+  "fields": {},
+  "_note": [
+    "Populated by the offset hunt (see OFFSETS-HUNTING.md).",
+    "Field format:",
+    "  'name': { 'static_off': '0x0', 'offsets': ['0x10','0x8'], 'type': 'int32',",
+    "            'min': 0, 'max': 100000000, 'axes': [0,1] }",
+    "Type: int32 | uint32 | int64 | uint64 | float | double | f32x2 | f32x3",
+    "Once cinders/position/hp are found, set required_fields: ['cinders','position','hp']",
+    "entities: see 'entity_manager' / 'entity' blocks below (optional, Phase 2D)."
+  ],
+  "_examples": {
+    "cinders": {"static_off": "0x2A3B4C0", "offsets": ["0x2E8"], "type": "int32", "min": 0, "max": 1000000},
+    "position": {"static_off": "0x2A3B4C0", "offsets": ["0x2F0"], "type": "f32x3", "axes": [0, 1]},
+    "hp": {"static_off": "0x2A3B4C0", "offsets": ["0x1F0"], "type": "float", "min": 0.0, "max": 100000.0}
+  }
+}

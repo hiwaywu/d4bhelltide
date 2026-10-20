@@ -1,0 +1,59 @@
+{
+  "panic_vk": 123,
+  "require_foreground": true,
+  "live_input": false,
+  "keys": {
+    "forward": "W",
+    "back": "S",
+    "left": "A",
+    "right": "D",
+    "stance": "SPACE",
+    "evade": "SPACE",
+    "potion": "Q",
+    "mount": "R",
+    "interact": "F"
+  },
+  "movement": {
+    "axes": [0, 1],
+    "basis": {
+      "W": [0.0, -1.0],
+      "S": [0.0, 1.0],
+      "A": [-1.0, 0.0],
+      "D": [1.0, 0.0]
+    },
+    "calibrated": false,
+    "keys_per_step": 100,
+    "step_hold_s": 0.09
+  },
+  "thresholds": {
+    "retreat_hp": 0.35,
+    "resume_hp": 0.6,
+    "chest_cost": 75,
+    "interact_radius": 2.5,
+    "waypoint_radius": 3.0,
+    "engage_radius": 14.0,
+    "aggro_radius": 24.0
+  },
+  "combat": {
+    "hostile_team": null,
+    "skills": [
+      {"key": "1", "kind": "attack", "range": 9.0, "cooldown": 0.5},
+      {"key": "2", "kind": "attack", "range": 12.0, "cooldown": 1.0},
+      {"key": "3", "kind": "attack", "range": 6.0, "cooldown": 2.0},
+      {"key": "4", "kind": "buff", "range": 0.0, "cooldown": 10.0, "every": 10.0}
+    ]
+  },
+  "route": [],
+  "chest_spots": [],
+  "loop": {
+    "tick_s": 0.1,
+    "max_runtime_s": 0,
+    "loot": false
+  },
+  "_note": [
+    "Edit keys to match your bindings; verify potion/mount/interact defaults in-game.",
+    "route: [{'x': 0.0, 'y': 0.0, 'label': 'loop-1', 'kind': 'walk'}]",
+    "chest_spots: [{'x': 0.0, 'y': 0.0, 'label': 'chest-north'}]",
+    "Run calibrate after position fields are found: python -m d4bot calibrate --live --write"
+  ]
+}
