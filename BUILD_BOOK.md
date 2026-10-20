@@ -30,11 +30,13 @@ python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
 python -m unittest discover -s tests -t . -v
+python tools\doctor.py
 ```
 
-Health check passes if the final line is `OK` (42 tests). This runs against a
+Health check passes if the final line is `OK` (58 tests). This runs against a
 synthetic target process — **the game is not needed** for this step. If it
-fails, stop and fix the environment before touching the game.
+fails, stop and fix the environment before touching the game. `doctor.py`
+prints a per-check status table and tells you what to fix.
 
 ## 2. Phase 0 — attach gate (2 minutes)
 
@@ -226,9 +228,10 @@ later and keep the memory reader for cinders/position/HP.
 - `keys`: set your real bindings (verify potion/mount/interact in-game).
 - `combat.skills`: your skills with `range`/`cooldown`; **v1 assumes
   self-centred/AoE skills**, aimed skills need Phase 3.5 mouse work.
-- `route`: waypoints recorded with `watch.py` (`x`,`y` from `pos=`), e.g.
-  `[{"x": 123.0, "y": -45.0, "label": "north-loop"}]`.
-- `chest_spots`: candidate Mystery Chest coordinates in the zone you farm.
+- `route`: waypoints recorded with the recorder (walk the loop, press Enter):
+  `python tools\record_route.py` — `c` drops a chest spot, `s` saves into
+  `config/bot.json`. Position must work (Phase 2C) first.
+- `chest_spots`: also recorded by the same tool at Mystery Chest candidates.
 - thresholds: `retreat_hp`, `chest_cost` (75), rad. `retreat_hp` is measured
   against the **highest HP seen this session**, so it works whether the game
   stores HP as a fraction (1.0) or an absolute pool (e.g. 5312.0).

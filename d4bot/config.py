@@ -74,6 +74,8 @@ def load_bot(path: str | Path | None = None) -> dict[str, Any]:
     if path is None:
         return copy.deepcopy(DEFAULT_BOT)
     doc = json.loads(Path(path).read_text(encoding="utf-8"))
+    if not isinstance(doc, dict):
+        raise ConfigError(f"{path}: top-level JSON must be an object, got {type(doc).__name__}")
     return deep_merge(DEFAULT_BOT, doc)
 
 
