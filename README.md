@@ -22,12 +22,12 @@ numpy; no DLL injection, no drivers, no memory writes.
 | **Actual game offsets (cinders/HP/pos/entities)** | ❌ **requires the game — Phase 2** |
 
 Everything above is verified against a synthetic target process
-(`tests/fake_target.py`) and synthetic snapshots: **66 tests** cover the memory
+(`tests/fake_target.py`) and synthetic snapshots: **70 tests** cover the memory
 layer, scanner, chain finder, reader (including entity-list decoding), CLI
 wiring against a foreign process, the bot loop (chest open, retreat, death
-stop), the input safety gate, route recording, diagnostics, and the position
-triple finder. You can run the whole suite at home without Diablo 4 to confirm
-your install is healthy.
+stop, focus-loss pause, missing-position guard), the input safety gate, route
+recording, diagnostics, and the position triple finder. You can run the whole
+suite at home without Diablo 4 to confirm your install is healthy.
 
 ## Requirements
 
@@ -64,7 +64,7 @@ If the probe prints `PASS`, continue with `BUILD_BOOK.md` → Phase 2.
 | `python tools\record_route.py` | walk your loop; Enter drops waypoints, `c` drops chest spots, saves to bot.json |
 | `python tools\doctor.py` | one-command setup check: bitness, numpy, configs, game presence |
 | `python tools\dump.py --addr 0x...` | hexdump / qword inspector |
-| `python -m d4bot validate` | check `config/offsets.json` against the live game |
+| `python -m d4bot validate` | check `config/offsets.json` field by field against the live game |
 | `python -m d4bot calibrate --live --write` | measure WASD→world basis, save to `config/bot.json` |
 | `python -m d4bot run` | bot loop, **dry-run** (logs intentions, sends no input) |
 | `python -m d4bot run --live` | bot loop with real input (requires game foreground) |

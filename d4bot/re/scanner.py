@@ -94,7 +94,9 @@ class ValueScanner:
                 cursor += take
 
     # -- scanning -------------------------------------------------------
-    def first_scan(self, value, vtype: str = "int32", tol: float | None = None) -> Candidates:
+    def first_scan(
+        self, value, vtype: str = "int32", tol: float | None = None, progress=None
+    ) -> Candidates:
         if vtype not in DTYPES:
             raise ValueError(f"unsupported vtype {vtype!r}")
         dt = DTYPES[vtype]
@@ -102,10 +104,12 @@ class ValueScanner:
         addrs: list[np.ndarray] = []
         vals: list[np.ndarray] = []
         total = 0
+        scanned = 0
         target = np.array([value], dtype=dt)[0]
 
         for region in self._regions():
             for base, data in self._iter_bytes(region, self.chunk):
+                scanned += len(data)
                 usable = len(data) - (len(data) % itemsize)
                 if usable <= 0:
                     continue
@@ -130,6 +134,8 @@ class ValueScanner:
                 total += found.size
             if total > self.max_candidates:
                 break
+            if progress is not None:
+                progress(scanned)
 
         if not addrs:
             return Candidates.empty(vtype)

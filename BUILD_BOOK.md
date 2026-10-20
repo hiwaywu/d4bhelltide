@@ -33,7 +33,7 @@ python -m unittest discover -s tests -t . -v
 python tools\doctor.py
 ```
 
-Health check passes if the final line is `OK` (66 tests). This runs against a
+Health check passes if the final line is `OK` (70 tests). This runs against a
 synthetic target process — **the game is not needed** for this step. If it
 fails, stop and fix the environment before touching the game. `doctor.py`
 prints a per-check status table and tells you what to fix.
@@ -270,7 +270,9 @@ python -m d4bot run --live
 
 ## 9. Per-patch routine (Phase 5)
 
-1. Patch lands → `python -m d4bot validate` (expect failures; that is normal).
+1. Patch lands → `python -m d4bot validate`. It checks **each field separately**
+   and prints `[ok] / [fail] / [REQFAIL]` per field, so you see exactly what
+   broke.
 2. Re-run the hunt for the broken fields only (usually 1–2 fields).
 3. Update `config/offsets.json`, restart-test, validate.
 4. `python tools\watch.py` sanity pass, then dry run, then live.

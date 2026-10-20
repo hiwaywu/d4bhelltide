@@ -6,9 +6,9 @@ from datetime import datetime
 from pathlib import Path
 
 from ..config import vk_for
-from ..errors import SnapshotError
+from ..errors import MemError, SnapshotError
 from ..reader import Offsets, Reader, Snapshot
-from ..win.input import Input, Safety
+from ..win.input import Input, InputBlocked, Safety
 from ..win.memory import Process
 from .combat import Combat
 from .helltide import HelltidePolicy
@@ -57,6 +57,8 @@ class BotLoop:
         self._prev_cinders: int | None = None
         self._hp_max: float | None = None
         self._last_mount_i: int | None = None
+        self._no_pos_since: float | None = None
+        self._pos_grace = float(cfg.get("loop", {}).get("position_grace_s", 2.0))
 
     # ------------------------------------------------------------------
     def run(self) -> None:
@@ -80,7 +82,15 @@ class BotLoop:
                         break
                     time.sleep(0.3)
                     continue
-                action = self._tick(snap)
+                try:
+                    action = self._tick(snap)
+                except InputBlocked as exc:
+                    # e.g. the game lost foreground mid-run: pause instead of
+                    # crashing, and make sure nothing is left held down
+                    self.inp.release_all()
+                    print(f"[d4bot] input blocked: {exc}")
+                    time.sleep(self.tick_s)
+                    continue
                 x = y = None
                 here = self.nav.horizontal(snap.pos)
                 if here:
@@ -116,6 +126,17 @@ class BotLoop:
         if snap.hp is not None and snap.hp <= 0:
             self.safety.stop("death detected (hp <= 0)")
             return "dead"
+
+        # never act blind: moving/chest logic needs a position vector
+        if snap.pos is None and (self.route or self.policy.chests):
+            if self._no_pos_since is None:
+                self._no_pos_since = now
+            elif now - self._no_pos_since > self._pos_grace:
+                self.safety.stop("position unreadable (configure Phase 2C position field)")
+                return "no-position"
+            self.nav.release()
+            return "waiting for position"
+        self._no_pos_since = None
 
         if self.policy.retreat_now(snap.hp, self._hp_max):
             return self._retreat(snap, now)
@@ -178,7 +199,7 @@ class BotLoop:
         time.sleep(0.45)
         try:
             after = self.reader.poll()
-        except SnapshotError:
+        except (SnapshotError, MemError):
             return "chest: read failed"
         if (
             after.cinders is not None

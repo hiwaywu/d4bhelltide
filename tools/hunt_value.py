@@ -62,10 +62,15 @@ def main() -> int:
     try:
         scanner = ValueScanner(proc, align=args.align)
         cands: Candidates | None = None
+
+        def progress(scanned: int) -> None:
+            print(f"\rscanning {scanned / (1024 * 1024):.0f} MiB ...", end="", flush=True)
+
         if args.value is not None:
             value = parse_value(args.value, args.type)
             print(f"first scan: {args.type} == {value} ...")
-            cands = scanner.first_scan(value, args.type, tol=args.approx)
+            cands = scanner.first_scan(value, args.type, tol=args.approx, progress=progress)
+            print()
             show(cands)
         help_text = "s <value> exact-filter | c changed | u unchanged | l list | a <addr> inspect | q"
         print(help_text + ("\n(no initial value given - use s <value> to start)" if cands is None else ""))
@@ -83,7 +88,10 @@ def main() -> int:
                 print(help_text)
             elif cmd == "s":
                 if cands is None:
-                    cands = scanner.first_scan(parse_value(rest, args.type), args.type, tol=args.approx)
+                    cands = scanner.first_scan(
+                        parse_value(rest, args.type), args.type, tol=args.approx, progress=progress
+                    )
+                    print()
                 else:
                     cands = scanner.filter_exact(cands, parse_value(rest, args.type), tol=args.approx)
                 show(cands)

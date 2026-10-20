@@ -54,18 +54,32 @@ def cmd_validate(args: argparse.Namespace) -> int:
         print(f"FAIL: {exc}")
         return 2
     try:
-        reader = Reader(proc, offsets)
-        snap = reader.poll()
+        reader = Reader(proc, offsets, strict=False)
+        rows = reader.check_fields()
+        failed: list[str] = []
+        required_failed = False
+        for name, error, value in rows:
+            if error is None:
+                print(f"[ok  ] {name}: {value}")
+            else:
+                failed.append(name)
+                if name in offsets.required:
+                    required_failed = True
+                print(f"[{'REQFAIL' if name in offsets.required else 'fail'}] {name}: {error}")
         print(f"module base {reader.base:#x} patch {offsets.patch or '?'}")
-        print(f"cinders={snap.cinders} hp={snap.hp} resource={snap.resource} pos={snap.pos}")
-        print(f"entities={len(snap.entities)}")
-        if snap.missing:
-            print("unreadable: " + ", ".join(sorted(snap.missing)))
+        if required_failed:
+            print("INVALID: a required field could not be read (stale offsets after a patch?)")
+            return 1
+        if failed:
+            print(f"WARN: optional field(s) unreadable: {', '.join(failed)}")
+        try:
+            snap = reader.poll()
+            print(f"snapshot: cinders={snap.cinders} hp={snap.hp} resource={snap.resource} pos={snap.pos}")
+            print(f"entities={len(snap.entities)}")
+        except SnapshotError as exc:
+            print(f"INVALID: {exc}")
             return 1
         return 0
-    except SnapshotError as exc:
-        print(f"INVALID: {exc}")
-        return 1
     finally:
         proc.close()
 

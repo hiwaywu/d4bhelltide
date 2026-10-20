@@ -166,15 +166,22 @@ class Snapshot:
 
 
 class Reader:
-    def __init__(self, proc: Process, offsets: Offsets, module: ModuleInfo | None = None):
+    def __init__(
+        self,
+        proc: Process,
+        offsets: Offsets,
+        module: ModuleInfo | None = None,
+        strict: bool = True,
+    ):
         self.proc = proc
         self.offsets = offsets
         self.module = module or proc.main_module(offsets.module)
-        self._check_binding()
+        self.base = self.module.base
+        if strict:
+            self._check_binding()
 
     def _check_binding(self) -> None:
         off = self.offsets
-        self.base = self.module.base
         # a quick smoke check: resolve the first required field
         for name in off.required:
             spec = off.fields[name]
@@ -184,6 +191,24 @@ class Reader:
                 raise SnapshotError(
                     f"required field {name!r} did not resolve on this build: {exc}"
                 ) from exc
+
+    def check_fields(self) -> list[tuple[str, str | None, object]]:
+        """Per-field health check: [(name, error_or_None, value)]."""
+        base = self.module.base
+        rows: list[tuple[str, str | None, object]] = []
+        for name, spec in self.offsets.fields.items():
+            try:
+                value = read_field(self.proc, base, spec)
+            except Exception as exc:
+                rows.append((name, f"unreadable: {exc}", None))
+                continue
+            error: str | None = None
+            if spec.min is not None and isinstance(value, (int, float)) and value < spec.min:
+                error = f"below min ({value} < {spec.min})"
+            elif spec.max is not None and isinstance(value, (int, float)) and value > spec.max:
+                error = f"above max ({value} > {spec.max})"
+            rows.append((name, error, value))
+        return rows
 
     def _read_named(self, name: str, snap: Snapshot) -> None:
         spec = self.offsets.fields.get(name)

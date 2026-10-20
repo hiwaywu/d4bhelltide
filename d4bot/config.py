@@ -56,7 +56,7 @@ DEFAULT_BOT: dict[str, Any] = {
     },
     "route": [],               # list of {"x":..,"y":..,"label":..,"kind":"walk"|"mount"}
     "chest_spots": [],         # list of {"x":..,"y":..,"label":..}
-    "loop": {"tick_s": 0.1, "max_runtime_s": 0, "loot": False},
+    "loop": {"tick_s": 0.1, "max_runtime_s": 0, "loot": False, "position_grace_s": 2.0},
 }
 
 

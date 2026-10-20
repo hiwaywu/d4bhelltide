@@ -96,6 +96,31 @@ class CliValidateIntegrationTest(unittest.TestCase):
             proc.close()
 
 
+    def test_validate_reports_each_field(self):
+        info = self.target.info
+        proc = Process.open(info["pid"])
+        try:
+            module = proc.main_module()
+            doc = self._offsets_doc(info["root"], module.base)
+            doc["fields"]["broken"] = {
+                "static_off": hex(1 << 40),  # unmapped on purpose
+                "offsets": ["0x0"],
+                "type": "int32",
+            }
+            cfg = fresh_dir("itest-fields") / "offsets.json"
+            cfg.write_text(json.dumps(doc), encoding="utf-8")
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                code = cli.main(["validate", "--pid", str(info["pid"]), "--offsets", str(cfg)])
+            text = out.getvalue()
+            self.assertEqual(code, 0, "optional field failure is a warning, not invalid")
+            self.assertIn("[ok  ] cinders", text)
+            self.assertIn("[fail] broken", text)
+            self.assertIn("WARN", text)
+        finally:
+            proc.close()
+
+
 class LoopIntegrationTest(unittest.TestCase):
     def _cfg(self, **overrides):
         cfg = deep_merge(DEFAULT_BOT, {"panic_vk": 0x7B, "require_foreground": False})
@@ -146,6 +171,36 @@ class LoopIntegrationTest(unittest.TestCase):
             loop.run()
         text = list(log_dir.glob("run-*.csv"))[0].read_text(encoding="utf-8")
         self.assertIn("retreat", text)
+
+    def test_input_blocked_pauses_instead_of_crashing(self):
+        from unittest import mock
+
+        from d4bot.win.input import InputBlocked
+
+        snaps = [Snapshot(t=0.0, cinders=0, hp=100.0, pos=(0.0, 0.0, 0.0))]
+        cfg = self._cfg(
+            route=[{"x": 100.0, "y": 0.0, "label": "r"}],
+            loop={"tick_s": 0.01, "max_runtime_s": 0.3},
+        )
+        log_dir = fresh_dir("itest-blocked")
+        loop = BotLoop(None, None, cfg, live=False, log_dir=log_dir, reader=FakeReader(snaps))
+        with mock.patch("d4bot.win.input.Input.key_down", side_effect=InputBlocked("not foreground")):
+            with contextlib.redirect_stdout(io.StringIO()):
+                loop.run()  # must not raise
+        self.assertEqual(loop.safety.stop_reason, "max runtime reached")
+        self.assertEqual(len(list(log_dir.glob("run-*.csv"))), 1)
+
+    def test_loop_stops_when_position_is_missing(self):
+        snaps = [Snapshot(t=0.0, cinders=0, hp=100.0, pos=None)]
+        cfg = self._cfg(
+            route=[{"x": 100.0, "y": 0.0, "label": "r"}],
+            loop={"tick_s": 0.01, "max_runtime_s": 2.0, "position_grace_s": 0.05},
+        )
+        log_dir = fresh_dir("itest-nopos")
+        loop = BotLoop(None, None, cfg, live=False, log_dir=log_dir, reader=FakeReader(snaps))
+        with contextlib.redirect_stdout(io.StringIO()):
+            loop.run()
+        self.assertIn("position unreadable", loop.safety.stop_reason)
 
 
 if __name__ == "__main__":

@@ -48,7 +48,8 @@
   "loop": {
     "tick_s": 0.1,
     "max_runtime_s": 0,
-    "loot": false
+    "loot": false,
+    "position_grace_s": 2.0
   },
   "_note": [
     "Edit keys to match your bindings; verify potion/mount/interact defaults in-game.",

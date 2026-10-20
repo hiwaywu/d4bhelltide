@@ -46,6 +46,13 @@ class ScannerTests(unittest.TestCase):
         changed, unchanged = self.scanner.filter_changed(cands)
         self.assertEqual(len(changed), 0)
 
+    def test_progress_callback_reports_increasing_bytes(self):
+        seen: list[int] = []
+        self.scanner.first_scan(424242, "int32", progress=seen.append)
+        self.assertTrue(seen, "progress must be reported")
+        self.assertEqual(seen, sorted(seen))
+        self.assertGreater(seen[-1], 0)
+
     def test_unreadable_candidates_are_dropped(self):
         addrs = [0xDEADBEEF0000, 0x10]
         import numpy as np
