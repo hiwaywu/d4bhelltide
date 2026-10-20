@@ -24,15 +24,17 @@ class BotLoop:
         cfg: dict,
         live: bool = False,
         log_dir: str | Path = "logs",
+        reader: Reader | None = None,
     ) -> None:
         self.proc = proc
         self.cfg = cfg
         self.live = live
-        self.reader = Reader(proc, offsets)
+        self.reader = reader if reader is not None else Reader(proc, offsets)
+        target_pid = getattr(proc, "pid", 0) if proc is not None else 0
         self.safety = Safety(
             panic_vk=int(cfg.get("panic_vk", 123)),
             require_foreground=bool(cfg.get("require_foreground", True)),
-            target_pid=proc.pid,
+            target_pid=target_pid,
             dry_run=not live,
         )
         self.inp = Input(self.safety, dry_run=not live)
@@ -53,6 +55,7 @@ class BotLoop:
         self._chest_label: str | None = None
         self._potion_t = 0.0
         self._prev_cinders: int | None = None
+        self._hp_max: float | None = None
         self._last_mount_i: int | None = None
 
     # ------------------------------------------------------------------
@@ -108,11 +111,13 @@ class BotLoop:
         now = time.time()
         if self._prev_cinders is None:
             self._prev_cinders = snap.cinders
+        if snap.hp is not None and snap.hp > 0:
+            self._hp_max = max(self._hp_max or 0.0, snap.hp)
         if snap.hp is not None and snap.hp <= 0:
             self.safety.stop("death detected (hp <= 0)")
             return "dead"
 
-        if self.policy.should_retreat(snap.hp):
+        if self.policy.retreat_now(snap.hp, self._hp_max):
             return self._retreat(snap, now)
 
         chest = self.policy.next_chest(snap)

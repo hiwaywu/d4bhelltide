@@ -32,9 +32,9 @@ pip install -r requirements.txt
 python -m unittest discover -s tests -t . -v
 ```
 
-Health check passes if the final line is `OK`. This runs against a synthetic
-target process — **the game is not needed** for this step. If it fails, stop
-and fix the environment before touching the game.
+Health check passes if the final line is `OK` (31 tests). This runs against a
+synthetic target process — **the game is not needed** for this step. If it
+fails, stop and fix the environment before touching the game.
 
 ## 2. Phase 0 — attach gate (2 minutes)
 
@@ -229,7 +229,9 @@ later and keep the memory reader for cinders/position/HP.
 - `route`: waypoints recorded with `watch.py` (`x`,`y` from `pos=`), e.g.
   `[{"x": 123.0, "y": -45.0, "label": "north-loop"}]`.
 - `chest_spots`: candidate Mystery Chest coordinates in the zone you farm.
-- thresholds: `retreat_hp`, `chest_cost` (75), rad.
+- thresholds: `retreat_hp`, `chest_cost` (75), rad. `retreat_hp` is measured
+  against the **highest HP seen this session**, so it works whether the game
+  stores HP as a fraction (1.0) or an absolute pool (e.g. 5312.0).
 
 Dry run (no input sent — verify the decisions in the log):
 

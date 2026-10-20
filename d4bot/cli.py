@@ -17,13 +17,17 @@ DEFAULT_OFFSETS = "config/offsets.json"
 DEFAULT_BOT = "config/bot.json"
 
 
-def _attach(game: str) -> Process:
-    return Process.attach(game)
+def _attach(args: argparse.Namespace) -> Process:
+    """Attach by explicit --pid (tests/debug) or by process-name match."""
+    pid = getattr(args, "pid", None)
+    if pid:
+        return Process.open(int(pid))
+    return Process.attach(args.game)
 
 
 def cmd_probe(args: argparse.Namespace) -> int:
     try:
-        proc = _attach(args.game)
+        proc = _attach(args)
     except MemError as exc:
         print(f"FAIL: {exc}")
         return 2
@@ -31,7 +35,7 @@ def cmd_probe(args: argparse.Namespace) -> int:
         mod = proc.main_module("diablo")
         regions = proc.readable_regions()
         total = sum(r.size for r in regions) / (1024 * 1024)
-        head = proc.read(head_header := mod.base, 2)
+        head = proc.read(mod.base, 2)
         print(f"PASS: pid={proc.pid} module={mod.name or '(image)'} base={mod.base:#x} size={mod.size:#x}")
         print(f"      readable regions={len(regions)} total={total:.0f} MiB, MZ={head == b'MZ'}")
         return 0
@@ -45,7 +49,7 @@ def cmd_validate(args: argparse.Namespace) -> int:
         print("No fields configured yet - fill config/offsets.json first (see OFFSETS-HUNTING.md).")
         return 1
     try:
-        proc = _attach(args.game)
+        proc = _attach(args)
     except MemError as exc:
         print(f"FAIL: {exc}")
         return 2
@@ -67,17 +71,17 @@ def cmd_validate(args: argparse.Namespace) -> int:
 
 
 def cmd_run(args: argparse.Namespace) -> int:
+    from .bot.loop import BotLoop
+
     offsets = load_offsets_file(args.offsets)
     cfg = load_bot(args.bot)
     try:
-        proc = _attach(args.game)
+        proc = _attach(args)
     except MemError as exc:
         print(f"FAIL: {exc}")
         return 2
     try:
-        loop = __import__("d4bot.bot.loop", fromlist=["BotLoop"]).BotLoop(
-            proc, offsets, cfg, live=args.live, log_dir=args.log_dir
-        )
+        loop = BotLoop(proc, offsets, cfg, live=args.live, log_dir=args.log_dir)
         loop.run()
         return 0
     finally:
@@ -91,7 +95,7 @@ def cmd_calibrate(args: argparse.Namespace) -> int:
         print("calibration needs --live (it moves your character)")
         return 2
     try:
-        proc = _attach(args.game)
+        proc = _attach(args)
     except MemError as exc:
         print(f"FAIL: {exc}")
         return 2
@@ -149,7 +153,7 @@ def cmd_calibrate(args: argparse.Namespace) -> int:
 def cmd_dump(args: argparse.Namespace) -> int:
     offsets = load_offsets_file(args.offsets)
     try:
-        proc = _attach(args.game)
+        proc = _attach(args)
     except MemError as exc:
         print(f"FAIL: {exc}")
         return 2
@@ -168,16 +172,20 @@ def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="d4bot", description="read-only Diablo 4 Helltide assistant")
     sub = p.add_subparsers(dest="cmd", required=True)
 
-    probe = sub.add_parser("probe", help="attach-test: can we read the game?")
+    def common(sp: argparse.ArgumentParser) -> argparse.ArgumentParser:
+        sp.add_argument("--pid", type=int, default=None, help="attach to this pid instead of the game name (testing)")
+        return sp
+
+    probe = common(sub.add_parser("probe", help="attach-test: can we read the game?"))
     probe.add_argument("--game", default="diablo")
     probe.set_defaults(func=cmd_probe)
 
-    val = sub.add_parser("validate", help="check offsets.json against the live game")
+    val = common(sub.add_parser("validate", help="check offsets.json against the live game"))
     val.add_argument("--offsets", default=DEFAULT_OFFSETS)
     val.add_argument("--game", default="diablo")
     val.set_defaults(func=cmd_validate)
 
-    run = sub.add_parser("run", help="run the bot (dry-run unless --live)")
+    run = common(sub.add_parser("run", help="run the bot (dry-run unless --live)"))
     run.add_argument("--offsets", default=DEFAULT_OFFSETS)
     run.add_argument("--bot", default=DEFAULT_BOT)
     run.add_argument("--game", default="diablo")
@@ -185,7 +193,7 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--log-dir", default="logs")
     run.set_defaults(func=cmd_run)
 
-    cal = sub.add_parser("calibrate", help="measure WASD -> world basis (live)")
+    cal = common(sub.add_parser("calibrate", help="measure WASD -> world basis (live)"))
     cal.add_argument("--offsets", default=DEFAULT_OFFSETS)
     cal.add_argument("--bot", default=DEFAULT_BOT)
     cal.add_argument("--game", default="diablo")
@@ -193,7 +201,7 @@ def build_parser() -> argparse.ArgumentParser:
     cal.add_argument("--write", action="store_true", help="save basis into bot.json")
     cal.set_defaults(func=cmd_calibrate)
 
-    dump = sub.add_parser("dump", help="hexdump module-relative address")
+    dump = common(sub.add_parser("dump", help="hexdump module-relative address"))
     dump.add_argument("--offsets", default=DEFAULT_OFFSETS)
     dump.add_argument("--game", default="diablo")
     dump.add_argument("--addr", type=lambda s: int(s, 0), required=True)

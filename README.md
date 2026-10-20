@@ -18,12 +18,14 @@ numpy; no DLL injection, no drivers, no memory writes.
 | Value scanner (int/float, diff filters, batched reads) | ✅ done, tested |
 | Pointer-chain finder (validated chains, restart-test workflow) | ✅ done, tested |
 | Reader (chains → typed snapshot, sanity guards) | ✅ done, tested |
-| Bot loop (nav, combat rotation, chest policy, retreat, panic key) | ✅ skeleton done |
+| Bot loop (nav, combat rotation, chest policy, retreat, panic key) | ✅ built + integration-tested (synthetic loop) |
 | **Actual game offsets (cinders/HP/pos/entities)** | ❌ **requires the game — Phase 2** |
 
 Everything above is verified against a synthetic target process
-(`tests/fake_target.py`), so you can run the whole test suite at home without
-Diablo 4 to confirm your install is healthy.
+(`tests/fake_target.py`) and synthetic snapshots: **31 tests** cover the memory
+layer, scanner, chain finder, reader, CLI wiring against a foreign process, and
+the bot loop (chest open, retreat, death stop). You can run the whole suite at
+home without Diablo 4 to confirm your install is healthy.
 
 ## Requirements
 
@@ -61,6 +63,9 @@ If the probe prints `PASS`, continue with `BUILD_BOOK.md` → Phase 2.
 | `python -m d4bot calibrate --live --write` | measure WASD→world basis, save to `config/bot.json` |
 | `python -m d4bot run` | bot loop, **dry-run** (logs intentions, sends no input) |
 | `python -m d4bot run --live` | bot loop with real input (requires game foreground) |
+
+Every command also accepts `--pid N` to attach by process id (used by the
+integration tests; handy if the executable name differs).
 
 ## Safety design
 

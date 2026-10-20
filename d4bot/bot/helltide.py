@@ -70,3 +70,16 @@ class HelltidePolicy:
 
     def should_resume(self, hp: float | None) -> bool:
         return hp is not None and hp >= self.resume_hp
+
+    # HP may be stored as a fraction (1.0) or an absolute pool (e.g. 5312.0).
+    # Use the highest HP observed this session as the reference so the same
+    # thresholds work for both layouts.
+    def retreat_now(self, hp: float | None, hp_max: float | None) -> bool:
+        if hp is None or hp <= 0 or not hp_max:
+            return hp is not None and 0.0 < hp <= self.retreat_hp
+        return hp <= self.retreat_hp * hp_max
+
+    def resume_now(self, hp: float | None, hp_max: float | None) -> bool:
+        if hp is None or not hp_max:
+            return hp is not None and hp >= self.resume_hp
+        return hp >= self.resume_hp * hp_max

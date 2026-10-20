@@ -162,8 +162,11 @@ class Input:
         self.last_error = ""
 
     # -- plumbing -------------------------------------------------------
-    def _send(self, inputs: list[INPUT]) -> None:
-        self.safety.ensure()
+    def _send(self, inputs: list[INPUT], force: bool = False) -> None:
+        # force=True is only used for key-release paths: letting keys stay held
+        # after a panic/stop would be dangerous, so releases bypass the gate.
+        if not force:
+            self.safety.ensure()
         if self.dry_run:
             return
         arr = (INPUT * len(inputs))(*inputs)
@@ -182,14 +185,14 @@ class Input:
     def key_up(self, vk: int) -> None:
         if vk not in self._held:
             return
-        self._send([_key_input(vk, up=True)])
+        self._send([_key_input(vk, up=True)], force=True)
         self._held.discard(vk)
 
     def tap(self, vk: int, hold: float = 0.02) -> None:
         self._send([_key_input(vk, up=False)])
         if hold > 0 and not self.dry_run:
             time.sleep(hold)
-        self._send([_key_input(vk, up=True)])
+        self._send([_key_input(vk, up=True)], force=True)
 
     def tap_name(self, name: str, hold: float = 0.02) -> None:
         self.tap(vk_for(name), hold)
@@ -197,8 +200,8 @@ class Input:
     def release_all(self) -> None:
         for vk in list(self._held):
             try:
-                self._send([_key_input(vk, up=True)])
-            except InputBlocked:
+                self._send([_key_input(vk, up=True)], force=True)
+            except Exception:
                 pass
             self._held.discard(vk)
 
