@@ -3,6 +3,36 @@
 The chat history does not travel, but everything needed does. This file is the
 compressed state of the build session. Read it, then `BUILD_BOOK.md`.
 
+---
+
+## FOR THE ASSISTANT — if the user says "read the README and HANDOFF and tell me exactly what I need to do right now"
+
+Do this, in order, before answering:
+
+1. Confirm the working directory contains `d4bot\` and `tools\` (if not, ask
+   where the project was extracted).
+2. Check Python is 64-bit and dependencies exist:
+   `.\.venv\Scripts\python.exe --version` (fall back to `python --version`),
+   and if `.venv` is missing, create it and run `pip install -r requirements.txt`.
+3. Run the test suite: `python -m unittest discover -s tests -t . -v`
+   Expect `OK` (70 tests). If it fails, fix that **first** and say so.
+4. Run `python tools\doctor.py`.
+5. Check whether Diablo IV is running (`Get-Process "*Diablo*"`).
+
+Then reply with **at most 5 numbered commands** for the very next action —
+not a summary of the whole project, not options. The expected answer when the
+game is running and tests pass is:
+
+1. Launch Diablo IV and log in (if not already).
+2. `python tools\probe_attach.py`
+3. Paste its output here.
+
+If Diablo IV is not installed or not running, say that first and give the one
+command that checks it. Never invent offsets; never suggest bypassing
+anti-cheat; if the probe reports `BLOCKED`, stop and explain the fallback.
+
+---
+
 ## Where the project stands
 
 - Code is **complete and tested** for everything that does not need the game:

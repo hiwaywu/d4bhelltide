@@ -1,5 +1,8 @@
 # d4bot — read-only Diablo 4 Helltide assistant
 
+> **Starting on a new machine or a fresh chat? Read [HANDOFF.md](HANDOFF.md)
+> first.** It contains the current state and the exact next commands.
+
 External, **read-only** memory reader plus a farming loop for personal Helltide
 runs on Windows. Built from scratch (no copied bot code). Pure Python 3.12 +
 numpy; no DLL injection, no drivers, no memory writes.
