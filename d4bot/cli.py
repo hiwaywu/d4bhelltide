@@ -8,7 +8,7 @@ import time
 from pathlib import Path
 
 from .config import load_bot, load_offsets_file, vk_for
-from .errors import ConfigError, MemError, SnapshotError
+from .errors import ConfigError, D4BotError, MemError, SnapshotError
 from .reader import Reader
 from .win.input import Input, Safety
 from .win.memory import Process
@@ -115,23 +115,27 @@ def cmd_calibrate(args: argparse.Namespace) -> int:
 
         basis: dict[str, list[float]] = {}
         print("Calibration: hold each movement key for 1.2 s. Keep the game focused. F12 aborts.")
-        for role, label in roles.items():
-            vk = vk_for(keys[role])
-            p0 = pos()
-            if p0 is None:
-                print("no position field configured - cannot calibrate")
-                return 1
-            inp.key_down(vk)
-            time.sleep(1.2)
-            inp.key_up(vk)
-            time.sleep(0.3)
-            p1 = pos()
-            if p1 is None:
-                print(f"{label}: lost position reading")
-                return 1
-            dx, dy = (p1[0] - p0[0]) / 1.2, (p1[1] - p0[1]) / 1.2
-            basis[label] = [round(dx, 4), round(dy, 4)]
-            print(f"{label}: d=({dx:+.3f}, {dy:+.3f}) units/s")
+        try:
+            for role, label in roles.items():
+                vk = vk_for(keys[role])
+                p0 = pos()
+                if p0 is None:
+                    print("no position field configured - cannot calibrate")
+                    return 1
+                inp.key_down(vk)
+                time.sleep(1.2)
+                inp.key_up(vk)
+                time.sleep(0.3)
+                p1 = pos()
+                if p1 is None:
+                    print(f"{label}: lost position reading")
+                    return 1
+                dx, dy = (p1[0] - p0[0]) / 1.2, (p1[1] - p0[1]) / 1.2
+                basis[label] = [round(dx, 4), round(dy, 4)]
+                print(f"{label}: d=({dx:+.3f}, {dy:+.3f}) units/s")
+        finally:
+            # never leave a movement key held if anything goes wrong mid-hold
+            inp.release_all()
         print(json.dumps({"movement": {"basis": basis, "calibrated": True}}, indent=2))
         if args.write:
             bot_path = Path(args.bot)
@@ -214,7 +218,7 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
         return int(args.func(args))
-    except (ConfigError, MemError) as exc:
+    except (ConfigError, MemError, D4BotError) as exc:
         print(f"error: {exc}")
         return 2
 

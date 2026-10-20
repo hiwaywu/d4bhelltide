@@ -125,16 +125,28 @@ Cross-check: opening a Tortured Gift removes exactly its cost (often 75).
 
 ### 4.3 Position (f32x3)
 
-Best approach: reuse the object from the cinder chain.
+Use the dedicated finder — it needs the validated cinder chain (Phase 2A):
 
-1. Dump around the object base (`tools\dump.py --addr ...`) and look for float
-   triples with world-like magnitudes.
-2. Walk ~10 m in one direction; dump again; a triple that changed coherently is
-   position. Verify magnitude: units ≈ metres per second × seconds.
-3. Add as `"type": "f32x3"`, `"axes": [0,1]` (or `[0,2]` / `[1,2]` if the layout
-   differs), then `watch.py` while walking (smooth tracking, correct directions).
-4. `python -m d4bot calibrate --live --write` records the WASD→world basis into
-   `config/bot.json`. Calibration matters: route following assumes it.
+```bat
+python tools\hunt_pos.py
+```
+
+Press Enter while standing still, walk straight ~10 m, press Enter again. It
+takes two dumps of a window around the cinder field and reports aligned float
+triples that moved coherently, ranked by fewest changed axes (position moves
+1–2 axes; animation floats move all three). Each candidate prints a ready-made
+`position` chain derived from the cinders chain.
+
+Verify with `watch.py --interval 0.2` (smooth tracking), then calibrate:
+
+```bat
+python -m d4bot calibrate --live --write
+```
+
+Manual fallback if the window misses the field: dump around the player object
+(`tools\dump.py`) before/after a walk and compare by eye.
+
+Axes: `"axes": [0,1]`, or `[0,2]` / `[1,2]` if the layout differs.
 
 ### 4.4 Entities (the hard one)
 

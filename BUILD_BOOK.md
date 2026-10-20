@@ -33,7 +33,7 @@ python -m unittest discover -s tests -t . -v
 python tools\doctor.py
 ```
 
-Health check passes if the final line is `OK` (58 tests). This runs against a
+Health check passes if the final line is `OK` (66 tests). This runs against a
 synthetic target process — **the game is not needed** for this step. If it
 fails, stop and fix the environment before touching the game. `doctor.py`
 prints a per-check status table and tells you what to fix.
@@ -156,30 +156,40 @@ bounds; add `"hp"` to `required_fields` once it tracks.
 
 ## 5. Phase 2C — position + WASD calibration
 
-Position is three consecutive floats that change as you walk. The fastest path
-is from the object behind your cinder chain:
+Position is three consecutive floats that change as you walk, and it normally
+lives in the same object as your cinders. The dedicated finder does the work:
 
-1. `python tools\dump.py --addr <player object+0x0> --size 0x400` (module-
-   relative; use `--absolute` if you have the raw address) — look for float
-   triples near small values.
-2. Walk 10 m forward; dump again; the triple that changed by ~10 units in a
-   consistent direction is position.
-3. Try each plausible triple with:
+1. Stand still in-game, then:
 
-   ```json
-   "position": {"static_off": "...", "offsets": ["..."], "type": "f32x3", "axes": [0, 1]}
+   ```bat
+   python tools\hunt_pos.py
    ```
 
-4. `python tools\watch.py --interval 0.2` and walk — `pos=(...)` must track
-   movement smoothly and in the right directions.
-5. Calibrate the WASD basis:
+   Press Enter to take snapshot A, walk straight ~10 m, press Enter for
+   snapshot B. It prints candidate triples with before/after values and a
+   ready-to-paste `position` chain (derived from your cinders chain).
+
+2. Take the candidate whose before/after matches your walk, put it in
+   `config/offsets.json`, and verify:
+
+   ```bat
+   python tools\watch.py --interval 0.2
+   ```
+
+   `pos=(...)` must track movement smoothly.
+
+3. If no candidate looks right, fall back to manual dumping
+   (`python tools\dump.py --addr <player object> --size 0x400`) and compare
+   before/after walks.
+
+4. Calibrate the WASD basis:
 
    ```bat
    python -m d4bot calibrate --live --write
    ```
 
    It holds each key for ~1.2 s and records the measured direction into
-   `config/bot.json`.
+   `config/bot.json` (keys are force-released if anything goes wrong).
 
 If axes are wrong (position jumps on the wrong coordinate), try `"axes": [0, 2]`
 or `[1, 2]`.

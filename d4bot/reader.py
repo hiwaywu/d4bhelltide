@@ -136,6 +136,7 @@ class Entity:
     pos: tuple[float, ...] | None = None
     hp: float | None = None
     team: int | None = None
+    kind: int | None = None
     dist: float | None = None
 
 
@@ -217,7 +218,8 @@ class Reader:
             manager = resolve_chain(
                 self.proc, self.base, h(mgr["static_off"]), [h(o) for o in mgr.get("offsets", [])]
             )
-            count = self.proc.read_u32(manager + h(mgr.get("count_off", 0)))
+            count_type = str(mgr.get("count_type", "int32"))
+            count = int(read_typed(self.proc, manager + h(mgr.get("count_off", 0)), count_type))
             count = max(0, min(count, int(mgr.get("max_count", 512))))
             array_ptr = self.proc.read_u64(manager + h(mgr.get("array_off", 0)))
             mode = mgr.get("mode", "pointer_array")
@@ -232,10 +234,19 @@ class Reader:
                 try:
                     e_pos_raw = read_typed(self.proc, eaddr + h(ent["pos_off"]), "f32x3")
                     e_hp = read_typed(self.proc, eaddr + h(ent["hp_off"]), "float")
-                    e_team = read_typed(self.proc, eaddr + h(ent["team_off"]), "int32") if "team_off" in ent else None
+                    e_team = (
+                        read_typed(self.proc, eaddr + h(ent["team_off"]), "int32")
+                        if "team_off" in ent
+                        else None
+                    )
+                    e_kind = (
+                        read_typed(self.proc, eaddr + h(ent["type_off"]), "int32")
+                        if "type_off" in ent
+                        else None
+                    )
                 except Exception:
                     continue
-                e = Entity(addr=eaddr, pos=e_pos_raw, hp=e_hp, team=e_team)
+                e = Entity(addr=eaddr, pos=e_pos_raw, hp=e_hp, team=e_team, kind=e_kind)
                 if snap.pos is not None:
                     e.dist = _dist(snap.pos, e_pos_raw)
                 snap.entities.append(e)
